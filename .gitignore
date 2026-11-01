@@ -13,10 +13,6 @@ __pycache__/
 # Datos crudos y cartografia (no versionar)
 data/
 datos/
-Prueba_2/CCPC/
-Prueba_2/conjunto_de_datos/
-Prueba_2/conjunto_de_datos_old/
-Prueba_2/Salida/
 salida/
 salidas/
 *.parquet

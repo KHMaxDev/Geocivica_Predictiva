@@ -3,7 +3,7 @@
 CCPC - Fase 1: ingesta, limpieza, validacion y consolidacion -> Parquet.
 
 USO
-    python 01_ingesta_limpieza.py --input-root Prueba_2/CCPC --out-root Prueba_2/salida
+    python scripts/01_ingesta_limpieza.py --input-root data/CCPC --out-root data/Salida
     (requiere: pandas, numpy, pyarrow)
 
 ARQUITECTURA Y JUSTIFICACION
@@ -819,8 +819,8 @@ class Pipeline:
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--input-root", default="Prueba_2/CCPC")
-    ap.add_argument("--out-root", default="Prueba_2/salida")
+    ap.add_argument("--input-root", default="data/CCPC")
+    ap.add_argument("--out-root", default="data/Salida")
     ap.add_argument("--max-reject-pct", type=float, default=DEFAULT_MAX_REJECT_PCT)
     ap.add_argument("--exclude-extra", default=None, help="regex adicional (case-insensitive) sobre la ruta relativa")
     ap.add_argument("--sink", choices=["parquet", "csv"], default="parquet", help="'csv' = SOLO pruebas")

@@ -54,6 +54,11 @@ Geocivica_Predictiva/
 ├── README.md
 ├── requirements.txt
 ├── .gitignore
+├── data/                        # insumos INE/INEGI (no versionado)
+│   ├── CCPC/                    # DatosAbiertos_DECEyEC_*
+│   ├── conjunto_de_datos/       # 00mun.shp
+│   ├── Salida/                  # generado por Fases 1-2
+│   └── outputs/                 # generado por Fase 0
 ├── scripts/
 │   ├── 00_schema_check.py
 │   ├── 01_ingesta_limpieza.py
@@ -183,11 +188,11 @@ pip install -r requirements.txt
 
 ### 2. Preparar los datos
 
-La estructura de datos que usa el pipeline en esta carpeta es:
+El proyecto usa una carpeta `data/` (no versionada) donde se alojan los archivos compartidos por el INE y el INEGI. La estructura esperada es:
 
 ```text
-Proyecto_INE/
-├── Prueba_2/
+Geocivica_Predictiva/
+├── data/
 │   ├── CCPC/
 │   │   ├── DatosAbiertos_DECEyEC_ConteosCensales2009/
 │   │   ├── DatosAbiertos_DECEyEC_ConteosCensales2012/
@@ -201,18 +206,24 @@ Proyecto_INE/
 │   │   └── 00mun.shp        # acompañado de .dbf, .shx, .prj y .cpg
 │   ├── Salida/              # Fases 1-2: run_<timestamp>/ y fase2_<timestamp>/
 │   └── outputs/             # Fase 0: diagnósticos .json y .log
-└── Geocivica_Predictiva/
-    ├── scripts/             # scripts 00-05 y 04b
-    │   └── salida/          # Fases 3-5: modelo, escenarios, mapa y crosswalk
-    └── resultados/          # entregables publicables
+├── scripts/
+│   └── salida/              # Fases 3-5: modelo, escenarios, mapa y crosswalk
+└── resultados/              # entregables publicables
 ```
 
-Los scripts resuelven las rutas de forma distinta:
+> **Importante:** los insumos deben quedar así:
+>
+> - **INE:** descarga los `DatosAbiertos_DECEyEC_*.zip` desde [Conteos Censales de Participación Ciudadana](https://ine.mx/transparencia/datos-abiertos/visualizacion-datos/conteos-censales-participacion/) y descomprímelos dentro de `data\CCPC\`, de modo que queden las carpetas `data\CCPC\DatosAbiertos_DECEyEC_*`. El nombre `CCPC` es obligatorio porque los scripts lo usan para localizar los CSV.
+> - **INEGI:** descarga el [Marco Geoestadístico 2024](https://www.inegi.org.mx/app/biblioteca/ficha.html?upc=794551132173) (`mg_2024_integrado.zip`) y coloca `00mun.shp` junto con sus archivos `.dbf`, `.shx`, `.prj` y `.cpg` en `data\conjunto_de_datos\`.
+>
+> Si tus datos están en otra ubicación, pasa `--input-root` (Fase 1) o `--root` (Fase 0) con la ruta correcta.
+
+Los scripts resuelven las rutas así:
 
 - `--root`, `--input-root`, `--out-root`, `--phase1-out-root`, `--input` y `--out` se interpretan **desde el directorio donde ejecutas el comando**.
-- `--dataset` (Fase 4), `--csv` y `--cartografia` (Fase 5) se interpretan **desde `scripts/`**, no desde el directorio actual.
+- `--dataset` (Fase 4), `--csv` y `--cartografia` (Fase 5) se interpretan **desde la raíz de `Geocivica_Predictiva`**.
 
-Si tus datos están en otra ubicación, usa esos mismos argumentos con la ruta correspondiente. Consulta `python scripts\<script>.py --help`.
+Consulta `python scripts\<script>.py --help` para ver todos los argumentos disponibles.
 
 ### 3. Ejecutar el pipeline
 
@@ -220,46 +231,42 @@ Desde la raíz de `Geocivica_Predictiva`:
 
 ```powershell
 # Fase 0: diagnóstico de esquemas
-# Salida: ..\Prueba_2\outputs\phase0_schema_check_<timestamp>.json/.log
-python scripts\00_schema_check.py --root ..\Prueba_2
+# Salida: data\outputs\phase0_schema_check_<timestamp>.json/.log
+python scripts\00_schema_check.py --root data
 
 # Fase 1: ingesta y limpieza
-# Salida: ..\Prueba_2\Salida\run_<timestamp>\
+# Salida: data\Salida\run_<timestamp>\
 python scripts\01_ingesta_limpieza.py `
-  --input-root ..\Prueba_2\CCPC `
-  --out-root ..\Prueba_2\Salida
+  --input-root data\CCPC `
+  --out-root data\Salida
 
 # Fase 2: panel municipal
-# Salida: ..\Prueba_2\Salida\fase2_<timestamp>\
+# Salida: data\Salida\fase2_<timestamp>\
 python scripts\02_feature_engineering.py `
-  --phase1-out-root ..\Prueba_2\Salida `
-  --out-root ..\Prueba_2\Salida
+  --phase1-out-root data\Salida `
+  --out-root data\Salida
 
 # Fase 3: modelo y explicabilidad
 # Salida: scripts\salida\modelo_abstencion\
 # Sustituye <timestamp> por la carpeta generada en Fase 2
 python scripts\03_modelo_explicabilidad.py `
-  --input ..\Prueba_2\Salida\fase2_<timestamp>\features_municipales.parquet `
+  --input data\Salida\fase2_<timestamp>\features_municipales.parquet `
   --out scripts\salida
 
 # Fase 4: escenarios
-# --dataset se resuelve respecto a scripts\ (por eso ..\..\Prueba_2)
 python scripts\04_laboratorio_escenarios.py `
-  --dataset ..\..\Prueba_2\Salida\fase2_<timestamp>\features_municipales.parquet
+  --dataset data\Salida\fase2_<timestamp>\features_municipales.parquet
 
 # Fase 4b: crosswalk INE -> INEGI
-# La Fase 5 requiere scripts\salida\crosswalk_ine_inegi_2024.csv.
-# 04b asume que scripts\ cuelga de Prueba_2\ (estructura original); aquí reutiliza el crosswalk publicado:
-New-Item -ItemType Directory -Force scripts\salida | Out-Null
-Copy-Item resultados\crosswalk_ine_inegi_2024.csv scripts\salida\crosswalk_ine_inegi_2024.csv
+# La Fase 5 requiere scripts\salida\crosswalk_ine_inegi_2024.csv
+python scripts\04b_crosswalk_ine_inegi.py
 
 # Fase 5: mapa interactivo y GeoJSON
-# --cartografia también se resuelve respecto a scripts\
 python scripts\05_mapa_interactivo.py `
-  --cartografia ..\..\Prueba_2\conjunto_de_datos\00mun.shp
+  --cartografia data\conjunto_de_datos\00mun.shp
 ```
 
-Las salidas intermedias de Fases 3–5 se generan en `scripts\salida\`; las de Fases 0–2, en `..\Prueba_2\outputs\` y `..\Prueba_2\Salida\`. Los archivos publicables ya están en `resultados/`.
+Las salidas intermedias de Fases 3–5 se generan en `scripts\salida\`; las de Fases 0–2, en `data\outputs\` y `data\Salida\`. Los archivos publicables ya están en `resultados/`.
 
 ---
 

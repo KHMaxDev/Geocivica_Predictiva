@@ -10,11 +10,11 @@ Alcance  : MODELO PREDICTIVO + EXPLICABILIDAD. NO demuestra causalidad.
 
 Uso
 ---
-    python 03_modelo_explicabilidad.py --input "..\Salida\fase2_20261026_210506_288\features_municipales.parquet"    todo (train -> congela -> evalúa)
+    python 03_modelo_explicabilidad.py --input "data/Salida/fase2_<timestamp>/features_municipales.parquet"    todo (train -> congela -> evalúa)
     
-    python Prueba_2/Script/03_modelo_explicabilidad.py --stage train    # solo TRAIN/VALIDATION y congelado
-    python Prueba_2/Script/03_modelo_explicabilidad.py --stage evaluate # solo evaluación 2024 + SHAP (carga modelo congelado)
-    python Prueba_2/Script/03_modelo_explicabilidad.py --input ruta.parquet --out salida # usar rutas personalizadas
+    python scripts/03_modelo_explicabilidad.py --stage train    # solo TRAIN/VALIDATION y congelado
+    python scripts/03_modelo_explicabilidad.py --stage evaluate # solo evaluación 2024 + SHAP (carga modelo congelado)
+    python scripts/03_modelo_explicabilidad.py --input ruta.parquet --out scripts/salida # usar rutas personalizadas
 
     # El mejor de estas opciones es la primera, que ejecuta todo el pipeline de forma reproducible. 
 
@@ -748,6 +748,14 @@ def stage_evaluate(df, out_dir: Path, diag: dict) -> dict:
     return {"frozen": frozen, "result": result}
 
 
+def default_input_path(project: Path) -> Path:
+    salida = project / "data" / "Salida"
+    candidatos = sorted(salida.glob("fase2_*/features_municipales.parquet"))
+    if candidatos:
+        return candidatos[-1]
+    return salida / "fase2_<timestamp>" / "features_municipales.parquet"
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="Fase 3 — Modelo predictivo + SHAP")
     ap.add_argument("--input", default=None)
@@ -757,7 +765,7 @@ def main() -> int:
 
     base = Path(__file__).resolve().parent
     out_dir = Path(args.out) if args.out else base / "salida"
-    input_path = Path(args.input) if args.input else base.parent / "Salida" / "fase2_20261026_210506_288" / "features_municipales.parquet"
+    input_path = Path(args.input) if args.input else default_input_path(base.parent)
     setup_logging(out_dir)
     set_seeds(RANDOM_STATE)
     started = datetime.now()

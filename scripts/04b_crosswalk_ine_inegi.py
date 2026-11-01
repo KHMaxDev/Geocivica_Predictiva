@@ -13,9 +13,9 @@ import geopandas as gpd
 import pandas as pd
 
 SCRIPT = Path(__file__).resolve().parent
-P2 = SCRIPT.parent
-RAW = P2 / "CCPC" / "DatosAbiertos_DECEyEC_ConteosCensales2024"
-MUN = P2 / "conjunto_de_datos" / "00mun.shp"
+PROJECT = SCRIPT.parent
+RAW = PROJECT / "data" / "CCPC" / "DatosAbiertos_DECEyEC_ConteosCensales2024"
+MUN = PROJECT / "data" / "conjunto_de_datos" / "00mun.shp"
 OUT = SCRIPT / "salida"
 XW = OUT / "crosswalk_ine_inegi_2024.csv"
 REP = OUT / "reporte_crosswalk_2024.json"

@@ -3,8 +3,8 @@
 CCPC - Fase 2: Feature engineering y panel municipal (AELEC, EDOCVE, MPIOCVE).
 
 USO
-    python 02_feature_engineering.py --phase1-out-root Prueba_2/salida
-    python 02_feature_engineering.py --input <ruta>/ine_dataset_limpio.parquet --out-root Prueba_2/salida
+    python scripts/02_feature_engineering.py --phase1-out-root data/Salida
+    python scripts/02_feature_engineering.py --input <ruta>/ine_dataset_limpio.parquet --out-root data/Salida
     (requiere: pandas, numpy, pyarrow)
 
 ARQUITECTURA Y JUSTIFICACION
@@ -674,8 +674,8 @@ class Phase2:
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--input", default=None, help="ruta a ine_dataset_limpio.parquet (si no, se resuelve via runs_index.csv de Fase 1)")
-    ap.add_argument("--phase1-out-root", default="Prueba_2/salida")
-    ap.add_argument("--out-root", default="Prueba_2/salida")
+    ap.add_argument("--phase1-out-root", default="data/Salida")
+    ap.add_argument("--out-root", default="data/Salida")
     ap.add_argument("--no-dup-check", dest="dup_check", action="store_false")
     ap.add_argument("--no-hash-input", dest="hash_input", action="store_false")
     return Phase2(ap.parse_args()).run()

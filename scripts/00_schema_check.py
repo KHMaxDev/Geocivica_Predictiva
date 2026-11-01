@@ -14,7 +14,7 @@ Decisiones tecnicas (justificacion):
 - Solo lectura sobre los datos; toda salida va a <root>/outputs/ con timestamp (sin sobrescribir).
 
 Uso:
-    python phase0_schema_check.py --root Prueba_2 [--sample-rows 200] [--hash]
+    python scripts/00_schema_check.py --root data [--sample-rows 200] [--hash]
 """
 from __future__ import annotations
 
@@ -293,7 +293,7 @@ def show(label, p: FileProfile):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--root", default="Prueba_2")
+    ap.add_argument("--root", default="data")
     ap.add_argument("--sample-rows", type=int, default=200)
     ap.add_argument("--hash", action="store_true", help="SHA-256 de cada archivo representativo (lee archivo completo)")
     ap.add_argument("--dir-2021"); ap.add_argument("--dir-2024"); ap.add_argument("--dir-va")

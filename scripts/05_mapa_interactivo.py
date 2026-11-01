@@ -11,20 +11,20 @@ IMPORTANTE: el mapa muestra predicciones y un ajuste condicional (banda
 contable-asociativa). No muestra abstención observada ni constituye una
 estimación causal de una campaña o política real.
 
-Ejecutar SIEMPRE desde  Prueba_2/Script/ :
+Ejecutar desde la raíz de Geocivica_Predictiva:
 
-    python 05_mapa_interactivo.py
-    python 05_mapa_interactivo.py --cartografia ../conjunto_de_datos/<archivo>
-    python 05_mapa_interactivo.py --tolerancia 500 --browser-check
+    python scripts/05_mapa_interactivo.py
+    python scripts/05_mapa_interactivo.py --cartografia data/conjunto_de_datos/00mun.shp
+    python scripts/05_mapa_interactivo.py --tolerancia 500 --browser-check
 
-Rutas (relativas a Script/):
-    entrada : salida/escenarios_finales_2024.csv           (Fase 4)
-    carto   : ../conjunto_de_datos/**  (.shp .geojson .gpkg .zip)
-    salidas : salida/mapa_riesgo_2024.html
-              salida/reporte_mapa_2024.json
-              salida/municipios_sin_geometria_2024.csv
-              salida/logs/mapa_interactivo.log
-    `Salida/` (proyecto) y `Script/salida/` son directorios distintos; aquí solo se escribe en `Script/salida/`.
+Rutas (relativas a la raíz del proyecto):
+    entrada : scripts/salida/escenarios_finales_2024.csv   (Fase 4)
+    carto   : data/conjunto_de_datos/**  (.shp .geojson .gpkg .zip)
+    salidas : scripts/salida/mapa_riesgo_2024.html
+              scripts/salida/reporte_mapa_2024.json
+              scripts/salida/municipios_sin_geometria_2024.csv
+              scripts/salida/logs/mapa_interactivo.log
+    `data/Salida/` (Fases 1-2) y `scripts/salida/` (Fases 3-5) son directorios distintos; aquí solo se escribe en `scripts/salida/`.
 
 Convención de impacto (documentada en el mapa):
     impacto_intervencion = prediccion_base − prediccion_simulada
@@ -56,11 +56,11 @@ import numpy as np
 import pandas as pd
 
 # --------------------------------------------------------------------------
-# Rutas (derivadas de la ubicación del script = Prueba_2/Script/)
+# Rutas (derivadas de la ubicación del script = Geocivica_Predictiva/scripts/)
 # --------------------------------------------------------------------------
 SCRIPT_DIR = Path(__file__).resolve().parent
 PROJECT_DIR = SCRIPT_DIR.parent
-OUT_DIR = SCRIPT_DIR / "salida"                         # Script/salida (minúscula)
+OUT_DIR = SCRIPT_DIR / "salida"                         # scripts/salida
 LOG_DIR = OUT_DIR / "logs"
 HIST_DIR = OUT_DIR / "mapas_historial"
 CSV_PATH = OUT_DIR / "escenarios_finales_2024.csv"
@@ -72,12 +72,12 @@ MISSING_PATH = OUT_DIR / "municipios_sin_geometria_2024.csv"
 SIN_INEGI_PATH = OUT_DIR / "municipios_ine_sin_geometria_2024.csv"
 VENDOR_DIR = OUT_DIR / "vendor"
 LOG_PATH = LOG_DIR / "mapa_interactivo.log"
-CARTO_DIRS = [PROJECT_DIR / "conjunto_de_datos"]
-CARTO_FALLBACK_DIRS = [PROJECT_DIR / "CCPC"]            # solo si la primera no tiene cartografía
+CARTO_DIRS = [PROJECT_DIR / "data" / "conjunto_de_datos"]
+CARTO_FALLBACK_DIRS = [PROJECT_DIR / "data" / "CCPC"]    # solo si la primera no tiene cartografía
 
 
 def rel(p) -> str:
-    """Ruta relativa a Script/ (nunca absoluta) para logs y reportes."""
+    """Ruta relativa a scripts/ (nunca absoluta) para logs y reportes."""
     try:
         return Path(os.path.relpath(Path(p).resolve(), SCRIPT_DIR)).as_posix()
     except ValueError:
@@ -493,7 +493,7 @@ def find_cartography(override: str | None):
     tmp = Path(tempfile.mkdtemp(prefix="carto_"))
     try:
         if override:
-            cands = [Cand(SCRIPT_DIR / override)]
+            cands = [Cand(PROJECT_DIR / override)]
             check(cands[0].path.exists(), f"Existe la cartografía indicada {override}", "cartografia_municipal")
         else:
             cands = list_candidates(CARTO_DIRS)
@@ -503,7 +503,7 @@ def find_cartography(override: str | None):
                 cands = list_candidates(CARTO_FALLBACK_DIRS)
         if not cands:
             VALIDATIONS["cartografia_municipal"] = "FALLÓ"
-            raise MapError("No hay cartografía local utilizable en ../conjunto_de_datos/ (ni en ../CCPC/). "
+            raise MapError("No hay cartografía local utilizable en data/conjunto_de_datos/ (ni en data/CCPC/). "
                            "Falta un insumo obligatorio (.shp/.geojson/.gpkg/.zip municipal). No se descarga nada.")
         log.info("Candidatos (%d):", len(cands))
         for c in cands:
@@ -1152,7 +1152,7 @@ def build_map(gm, geom4326, sc_info: dict, simp: dict):
                   "paleta_riesgo": "YlOrRd (branca linear.YlOrRd_09)",
                   "paleta_impacto": "RdBu (azul = reducción, rojo = aumento)",
                   "convencion_impacto": "impacto_pp = (prediccion_base − prediccion_simulada) × 100; + = reducción",
-                  "render": "Leaflet 1.9.4 local (salida/vendor) o CDN con datos compactos: geometrías en enteros delta, colores calculados en el navegador",
+                  "render": "Leaflet 1.9.4 local (scripts/salida/vendor) o CDN con datos compactos: geometrías en enteros delta, colores calculados en el navegador",
                   "leaflet_local": bool(leaflet_local),
                   "n_features": int(len(mg))}, mg
 
@@ -1225,8 +1225,8 @@ def verify_html(n_expected: int, browser_check: bool) -> dict:
 # --------------------------------------------------------------------------
 def main() -> int:
     ap = argparse.ArgumentParser(description="Fase 5 — GIS y mapa interactivo")
-    ap.add_argument("--csv", default=None, help="CSV de escenarios (relativo a Script/)")
-    ap.add_argument("--cartografia", default=None, help="Cartografía municipal (relativa a Script/)")
+    ap.add_argument("--csv", default=None, help="CSV de escenarios (relativo a la raíz del proyecto)")
+    ap.add_argument("--cartografia", default=None, help="Cartografía municipal (relativa a la raíz del proyecto)")
     ap.add_argument("--tolerancia", type=float, default=None, help="Tolerancia de simplificación en metros")
     ap.add_argument("--browser-check", action="store_true", help="Validar el HTML con Playwright si está instalado")
     args = ap.parse_args()
@@ -1236,7 +1236,7 @@ def main() -> int:
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     setup_logging()
     log.info("##### FASE 5 | INICIO #####")
-    csv_path = (SCRIPT_DIR / args.csv) if args.csv else CSV_PATH
+    csv_path = (PROJECT_DIR / args.csv) if args.csv else CSV_PATH
     archive_previous(HTML_PATH)       # el HTML/reporte canónicos siempre corresponden a ESTA ejecución
     archive_previous(REPORT_PATH)
 
@@ -1259,7 +1259,7 @@ def main() -> int:
             if str(p4.get("estado", "")).startswith(("FAILED", "CRITICAL")):
                 log.warning("El reporte de Fase 4 indica estado %s.", p4.get("estado"))
         except Exception:  # noqa: BLE001
-            log.warning("No se pudo leer salida/escenario_2024.json (informativo).")
+            log.warning("No se pudo leer scripts/salida/escenario_2024.json (informativo).")
 
         with timer("carga"):
             sc, sc_info = load_scenarios(csv_path)

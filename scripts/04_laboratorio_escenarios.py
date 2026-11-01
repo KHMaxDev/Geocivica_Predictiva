@@ -17,18 +17,18 @@ El modelo predictivo de Fase 3 se usa para el riesgo base del mapa; el impacto
 del escenario es un ajuste contable/asociativo, no una feature contemporánea
 del modelo (evita la fuga corregida en Fase 3).
 
-Ejecutar SIEMPRE desde  Prueba_2/Script/ :
+Ejecutar desde la raíz de Geocivica_Predictiva:
 
-    python 04_laboratorio_escenarios.py
-    python 04_laboratorio_escenarios.py --dataset ../Salida/fase2_20261026_210506_288/features_municipales.parquet
+    python scripts/04_laboratorio_escenarios.py
+    python scripts/04_laboratorio_escenarios.py --dataset data/Salida/fase2_<timestamp>/features_municipales.parquet
 
-Rutas (todas relativas a Script/):
-    entrada dataset : ../Salida/fase2_20261026_210506_288/features_municipales.parquet
-    entrada modelo  : salida/modelo_abstencion/            (artefacto de Fase 3)
-    salidas         : salida/escenarios_finales_2024.csv
-                      salida/escenario_2024.json
-                      salida/logs/laboratorio_escenarios.log
-    NOTA: `Salida/` (proyecto) y `Script/salida/` son directorios distintos.
+Rutas (relativas a la raíz del proyecto):
+    entrada dataset : data/Salida/fase2_<timestamp>/features_municipales.parquet
+    entrada modelo  : scripts/salida/modelo_abstencion/    (artefacto de Fase 3)
+    salidas         : scripts/salida/escenarios_finales_2024.csv
+                      scripts/salida/escenario_2024.json
+                      scripts/salida/logs/laboratorio_escenarios.log
+    NOTA: `data/Salida/` (Fases 1-2) y `scripts/salida/` (Fases 3-5) son directorios distintos.
 
 Reglas de seguridad del experimento
 -----------------------------------
@@ -54,16 +54,25 @@ import numpy as np
 import pandas as pd
 
 # --------------------------------------------------------------------------
-# Rutas (derivadas de la ubicación del script = Prueba_2/Script/)
+# Rutas (derivadas de la ubicación del script = Geocivica_Predictiva/scripts/)
 # --------------------------------------------------------------------------
 SCRIPT_DIR = Path(__file__).resolve().parent
 PROJECT_DIR = SCRIPT_DIR.parent
-OUT_DIR = SCRIPT_DIR / "salida"                      # Script/salida  (minúscula)
+OUT_DIR = SCRIPT_DIR / "salida"                      # scripts/salida
 MODEL_DIR = OUT_DIR / "modelo_abstencion"
 LOG_DIR = OUT_DIR / "logs"
 HIST_DIR = OUT_DIR / "escenarios_historial"
-DEFAULT_DATASET = (PROJECT_DIR / "Salida" / "fase2_20261026_210506_288"   # Salida (mayúscula)
-                   / "features_municipales.parquet")
+
+
+def latest_dataset(project: Path) -> Path:
+    salida = project / "data" / "Salida"
+    candidatos = sorted(salida.glob("fase2_*/features_municipales.parquet"))
+    if candidatos:
+        return candidatos[-1]
+    return salida / "fase2_<timestamp>" / "features_municipales.parquet"
+
+
+DEFAULT_DATASET = latest_dataset(PROJECT_DIR)
 CSV_PATH = OUT_DIR / "escenarios_finales_2024.csv"
 JSON_PATH = OUT_DIR / "escenario_2024.json"
 INDEX_PATH = OUT_DIR / "runs_index_escenarios.jsonl"
@@ -71,7 +80,7 @@ LOG_PATH = LOG_DIR / "laboratorio_escenarios.log"
 
 
 def rel(p: Path) -> str:
-    """Ruta relativa a Script/ (nunca absoluta) para logs y reportes."""
+    """Ruta relativa a scripts/ (nunca absoluta) para logs y reportes."""
     try:
         return Path(os.path.relpath(Path(p).resolve(), SCRIPT_DIR)).as_posix()
     except ValueError:
@@ -632,10 +641,10 @@ def save_outputs(res: pd.DataFrame, report: dict) -> None:
 def main() -> int:
     ap = argparse.ArgumentParser(description="Fase 4 — Laboratorio de escenarios (contrafactual del modelo)")
     ap.add_argument("--dataset", default=None,
-                    help="Ruta relativa a Script/ del features_municipales.parquet (por defecto la de Fase 2)")
+                    help="Ruta relativa a la raíz del proyecto del features_municipales.parquet (por defecto la de Fase 2)")
     args = ap.parse_args()
 
-    dataset = (SCRIPT_DIR / args.dataset) if args.dataset else DEFAULT_DATASET
+    dataset = (PROJECT_DIR / args.dataset) if args.dataset else DEFAULT_DATASET
     run_id = datetime.now().strftime("%Y%m%d_%H%M%S")
     started = datetime.now().isoformat(timespec="seconds")
     setup_logging()
