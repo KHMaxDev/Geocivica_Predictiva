@@ -51,6 +51,7 @@ Geocívica Predictiva es un pipeline reproducible de analítica territorial que 
 
 ```text
 Geocivica_Predictiva/
+├── README.md
 ├── requirements.txt
 ├── .gitignore
 ├── scripts/
@@ -60,9 +61,8 @@ Geocivica_Predictiva/
 │   ├── 03_modelo_explicabilidad.py
 │   ├── 04_laboratorio_escenarios.py
 │   ├── 04b_crosswalk_ine_inegi.py
-│   └── 05_mapa_interactivo.py
-├── info/
-│   └── README.md
+│   ├── 05_mapa_interactivo.py
+│   └── salida/                  # generado por Fases 3-5
 └── resultados/
     ├── mapa_riesgo_2024.html
     ├── mapa_escenarios_2024.geojson
@@ -183,25 +183,36 @@ pip install -r requirements.txt
 
 ### 2. Preparar los datos
 
-El pipeline espera la estructura del entorno original:
+La estructura de datos que usa el pipeline en esta carpeta es:
 
 ```text
 Proyecto_INE/
 ├── Prueba_2/
 │   ├── CCPC/
 │   │   ├── DatosAbiertos_DECEyEC_ConteosCensales2009/
-│   │   ├── ...
-│   │   └── DatosAbiertos_DECEyEC_ConteosCensales2024/
+│   │   ├── DatosAbiertos_DECEyEC_ConteosCensales2012/
+│   │   ├── DatosAbiertos_DECEyEC_ConteosCensales2015/
+│   │   ├── DatosAbiertos_DECEyEC_ConteosCensales2018/
+│   │   ├── DatosAbiertos_DECEyEC_ConteosCensales2021/
+│   │   ├── DatosAbiertos_DECEyEC_ConteosCensales2024/
+│   │   ├── DatosAbiertos_DECEyEC_ConteosCensales_PrisionPreventiva2024/
+│   │   └── DatosAbiertos_DECEyEC_ConteosCensales_VotoAnticipado2024/
 │   ├── conjunto_de_datos/
-│   │   └── 00mun.shp
-│   └── salida/
+│   │   └── 00mun.shp        # acompañado de .dbf, .shx, .prj y .cpg
+│   ├── Salida/              # Fases 1-2: run_<timestamp>/ y fase2_<timestamp>/
+│   └── outputs/             # Fase 0: diagnósticos .json y .log
 └── Geocivica_Predictiva/
-    ├── scripts/
-    ├── info/
-    └── resultados/
+    ├── scripts/             # scripts 00-05 y 04b
+    │   └── salida/          # Fases 3-5: modelo, escenarios, mapa y crosswalk
+    └── resultados/          # entregables publicables
 ```
 
-Los scripts conservan las rutas relativas del proyecto original. Si tus datos están en otra ubicación, usa los argumentos `--root`, `--input-root`, `--out-root`, `--input`, `--dataset` y `--cartografia`.
+Los scripts resuelven las rutas de forma distinta:
+
+- `--root`, `--input-root`, `--out-root`, `--phase1-out-root`, `--input` y `--out` se interpretan **desde el directorio donde ejecutas el comando**.
+- `--dataset` (Fase 4), `--csv` y `--cartografia` (Fase 5) se interpretan **desde `scripts/`**, no desde el directorio actual.
+
+Si tus datos están en otra ubicación, usa esos mismos argumentos con la ruta correspondiente. Consulta `python scripts\<script>.py --help`.
 
 ### 3. Ejecutar el pipeline
 
@@ -209,34 +220,46 @@ Desde la raíz de `Geocivica_Predictiva`:
 
 ```powershell
 # Fase 0: diagnóstico de esquemas
-python scripts/00_schema_check.py --root ..\Prueba_2
+# Salida: ..\Prueba_2\outputs\phase0_schema_check_<timestamp>.json/.log
+python scripts\00_schema_check.py --root ..\Prueba_2
 
 # Fase 1: ingesta y limpieza
-python scripts/01_ingesta_limpieza.py `
+# Salida: ..\Prueba_2\Salida\run_<timestamp>\
+python scripts\01_ingesta_limpieza.py `
   --input-root ..\Prueba_2\CCPC `
-  --out-root ..\Prueba_2\salida
+  --out-root ..\Prueba_2\Salida
 
 # Fase 2: panel municipal
-python scripts/02_feature_engineering.py `
-  --phase1-out-root ..\Prueba_2\salida `
-  --out-root ..\Prueba_2\salida
+# Salida: ..\Prueba_2\Salida\fase2_<timestamp>\
+python scripts\02_feature_engineering.py `
+  --phase1-out-root ..\Prueba_2\Salida `
+  --out-root ..\Prueba_2\Salida
 
 # Fase 3: modelo y explicabilidad
+# Salida: scripts\salida\modelo_abstencion\
 # Sustituye <timestamp> por la carpeta generada en Fase 2
-python scripts/03_modelo_explicabilidad.py `
-  --input ..\Prueba_2\salida\fase2_<timestamp>\features_municipales.parquet `
+python scripts\03_modelo_explicabilidad.py `
+  --input ..\Prueba_2\Salida\fase2_<timestamp>\features_municipales.parquet `
   --out scripts\salida
 
 # Fase 4: escenarios
-python scripts/04_laboratorio_escenarios.py `
-  --dataset ..\Prueba_2\salida\fase2_<timestamp>\features_municipales.parquet
+# --dataset se resuelve respecto a scripts\ (por eso ..\..\Prueba_2)
+python scripts\04_laboratorio_escenarios.py `
+  --dataset ..\..\Prueba_2\Salida\fase2_<timestamp>\features_municipales.parquet
+
+# Fase 4b: crosswalk INE -> INEGI
+# La Fase 5 requiere scripts\salida\crosswalk_ine_inegi_2024.csv.
+# 04b asume que scripts\ cuelga de Prueba_2\ (estructura original); aquí reutiliza el crosswalk publicado:
+New-Item -ItemType Directory -Force scripts\salida | Out-Null
+Copy-Item resultados\crosswalk_ine_inegi_2024.csv scripts\salida\crosswalk_ine_inegi_2024.csv
 
 # Fase 5: mapa interactivo y GeoJSON
-python scripts/05_mapa_interactivo.py `
-  --cartografia ..\Prueba_2\conjunto_de_datos\00mun.shp
+# --cartografia también se resuelve respecto a scripts\
+python scripts\05_mapa_interactivo.py `
+  --cartografia ..\..\Prueba_2\conjunto_de_datos\00mun.shp
 ```
 
-Las salidas intermedias se generan en `scripts/salida/`. Los archivos publicables ya están en `resultados/`.
+Las salidas intermedias de Fases 3–5 se generan en `scripts\salida\`; las de Fases 0–2, en `..\Prueba_2\outputs\` y `..\Prueba_2\Salida\`. Los archivos publicables ya están en `resultados/`.
 
 ---
 
