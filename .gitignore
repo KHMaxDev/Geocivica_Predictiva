@@ -1,0 +1,53 @@
+# Entornos virtuales
+.venv/
+venv/
+env/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Datos crudos y cartografia (no versionar)
+data/
+datos/
+Prueba_2/CCPC/
+Prueba_2/conjunto_de_datos/
+Prueba_2/conjunto_de_datos_old/
+Prueba_2/Salida/
+salida/
+salidas/
+*.parquet
+*.shp
+*.shx
+*.dbf
+*.prj
+*.cpg
+*.gpkg
+
+# Artefactos de trabajo que no forman parte de la entrega
+*.zip
+*.rar
+*.png
+*.pdf
+*.docx
+*.pptx
+*.json
+
+# Resultados publicables (se versionan)
+!resultados/
+!resultados/**/*.html
+!resultados/**/*.csv
+!resultados/**/*.geojson
+!resultados/**/*.css
+!resultados/**/*.js
+
+# Secretos y configuracion local
+.env
+.env.*
+*.key
+*.pem
+.DS_Store
+Thumbs.db
